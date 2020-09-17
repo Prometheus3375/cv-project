@@ -316,10 +316,9 @@ class MultiscaleDiscriminator(nn.Module):
         input_downsampled = input_
         for i in range(num_D):
             if self.getIntermFeat:
-                model = [getattr(self, 'scale' + str(num_D - 1 - i) + '_layer' + str(j)) for j in
-                         range(self.n_layers + 2)]
+                model = [getattr(self, f'scale{num_D - 1 - i}_layer{j}') for j in range(self.n_layers + 2)]
             else:
-                model = getattr(self, 'layer' + str(num_D - 1 - i))
+                model = getattr(self, f'layer{num_D - 1 - i}')
             result.append(self.singleD_forward(model, input_downsampled))
             if i != (num_D - 1):
                 input_downsampled = self.downsample(input_downsampled)
