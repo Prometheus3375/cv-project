@@ -6,17 +6,22 @@ from pathlib import Path
 
 
 def frames_from_video(video_path):
-    video = cv2.VideoCapture(video_path)
+    print(video_path)
+
+    video = cv2.VideoCapture(str(video_path))
 
     count = 1
     success = 1
 
     output = video_path.parent / os.path.basename(video_path).split(".")[0]
 
+    output.mkdir(exist_ok=True)
+
     while success:
         success, image = video.read()
-        cv2.imwrite(output / ("%04d_img.png" % count), image)
-        count += 1
+        if success:
+            cv2.imwrite(str(output / ("%04d_img.png" % count)), image)
+            count += 1
 
     print(f"{count - 1} frames were extracted")
 
@@ -33,5 +38,6 @@ if __name__ == "__main__":
     for folder in folders:
         os.chdir(folder)
         for ext in extensions:
-            for file in glob.glob(f"*.{ext}"):
-                frames_from_video(folder / file)
+           for file in glob.glob(f"*.{ext}"):
+               frames_from_video(folder / file)
+
