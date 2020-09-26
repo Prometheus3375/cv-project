@@ -148,18 +148,18 @@ class ResnetConditionHR(nn.Module):
 def conv_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
-        init.xavier_uniform(m.weight, gain = np.sqrt(2))
+        init.xavier_uniform_(m.weight, gain = np.sqrt(2))
         # init.normal(m.weight)
         if m.bias is not None:
-            init.constant(m.bias, 0)
+            init.constant_(m.bias, 0)
 
     if classname.find('Linear') != -1:
-        init.normal(m.weight)
-        init.constant(m.bias, 1)
+        init.normal_(m.weight)
+        init.constant_(m.bias, 1)
 
     if classname.find('BatchNorm2d') != -1:
-        init.normal(m.weight.data, 1.0, 0.2)
-        init.constant(m.bias.data, 0.0)
+        init.normal_(m.weight.data, 1.0, 0.2)
+        init.constant_(m.bias.data, 0.0)
 
 
 class conv3x3(nn.Module):
