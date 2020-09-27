@@ -7,6 +7,7 @@ from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader, default_collate
 
 from data_loader import VideoData
+from decorators import except_errors
 from functions import *
 from loss_functions import GANloss, alpha_gradient_loss, alpha_loss, compose_loss
 from networks import MultiscaleDiscriminator, ResnetConditionHR, conv_init
@@ -19,6 +20,7 @@ def collate_filter_none(batch):
 
 
 @print_time_elapsed
+@except_errors()
 def main():
     # CUDA
 
@@ -27,19 +29,28 @@ def main():
     print(f'Is CUDA available: {torch.cuda.is_available()}')
 
     """Parses arguments."""
-    parser = argparse.ArgumentParser(description = 'Training Background Matting on Adobe Dataset.')
-    parser.add_argument('-n', '--name', type = str, help = 'Name of tensorboard and model saving folders.')
-    parser.add_argument('-bs', '--batch_size', type = int, help = 'Batch Size.')
-    parser.add_argument('-res', '--reso', type = int, help = 'Input image resolution')
-    parser.add_argument('-init_model', '--init_model', type = str, help = 'Initial model file')
+    parser = argparse.ArgumentParser(description = 'Training Background Matting on Adobe Dataset')
+    parser.add_argument('-n', '--name', type = str,
+                        help = 'Name of tensorboard and model saving folders')
+    parser.add_argument('-bs', '--batch_size', type = int,
+                        help = 'Batch Size')
+    parser.add_argument('-res', '--reso', type = int,
+                        help = 'Input image resolution')
+    parser.add_argument('-init_model', '--init_model', type = str,
+                        help = 'Initial model file')
 
-    parser.add_argument('-epoch', '--epoch', type = int, default = 15, help = 'Maximum Epoch')
+    parser.add_argument('-w', '--workers', type = int, default = None,
+                        help = 'Number of worker to load data')
+    parser.add_argument('-epoch', '--epoch', type = int, default = 15,
+                        help = 'Maximum Epoch')
     parser.add_argument('-n_blocks1', '--n_blocks1', type = int, default = 7,
-                        help = 'Number of residual blocks after Context Switching.')
+                        help = 'Number of residual blocks after Context Switching')
     parser.add_argument('-n_blocks2', '--n_blocks2', type = int, default = 3,
-                        help = 'Number of residual blocks for Fg and alpha each.')
+                        help = 'Number of residual blocks for Fg and alpha each')
 
     args = parser.parse_args()
+    if args.workers is None:
+        args.workers = args.batch_size
 
     ##Directories
     tb_dir = f'tb_summary/{args.name}'
@@ -67,7 +78,7 @@ def main():
         traindata,
         batch_size = args.batch_size,
         shuffle = True,
-        num_workers = args.batch_size,
+        num_workers = args.workers,
         collate_fn = collate_filter_none
     )
 
