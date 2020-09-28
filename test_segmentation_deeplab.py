@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from tensorflow.core.framework.graph_pb2 import GraphDef
+from tensorflow.python.client.session import Session
 
 
 class DeepLabModel(object):
@@ -27,7 +29,7 @@ class DeepLabModel(object):
         for tar_info in tar_file.getmembers():
             if self.FROZEN_GRAPH_NAME in os.path.basename(tar_info.name):
                 file_handle = tar_file.extractfile(tar_info)
-                graph_def = tf.GraphDef.FromString(file_handle.read())
+                graph_def = GraphDef.FromString(file_handle.read())
                 break
 
         tar_file.close()
@@ -38,7 +40,7 @@ class DeepLabModel(object):
         with self.graph.as_default():
             tf.import_graph_def(graph_def, name = '')
 
-        self.sess = tf.Session(graph = self.graph)
+        self.sess = Session(graph = self.graph)
 
     def run(self, image):
         """Runs inference on a single image.
@@ -114,15 +116,6 @@ def main():
 
     ## setup ####################
 
-    LABEL_NAMES = np.asarray([
-        'background', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus',
-        'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
-        'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tv'
-    ])
-
-    FULL_LABEL_MAP = np.arange(len(LABEL_NAMES)).reshape(len(LABEL_NAMES), 1)
-    FULL_COLOR_MAP = label_to_color_image(FULL_LABEL_MAP)
-
     MODEL_NAME = 'xception_coco_voctrainval'  # @param ['mobilenetv2_coco_voctrainaug', 'mobilenetv2_coco_voctrainval', 'xception_coco_voctrainaug', 'xception_coco_voctrainval']
 
     _DOWNLOAD_URL_PREFIX = 'http://download.tensorflow.org/models/'
@@ -136,7 +129,7 @@ def main():
 
     model_dir = 'deeplab_model'
     if not os.path.exists(model_dir):
-        tf.gfile.MakeDirs(model_dir)
+        os.makedirs(model_dir, exist_ok = True)
 
     download_path = os.path.join(model_dir, _TARBALL_NAME)
     if not os.path.exists(download_path):
