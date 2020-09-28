@@ -91,7 +91,7 @@ tifffile==2020.9.22
 torch
 torchvision
 tornado==6.0.4
-tqdm==4.49.0
+tqdm==4.50.0
 traitlets==5.0.4
 urllib3==1.25.10
 wcwidth==0.2.5
