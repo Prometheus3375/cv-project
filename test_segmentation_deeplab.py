@@ -116,6 +116,9 @@ def main():
 
     ## setup ####################
 
+    # Issue https://github.com/tensorflow/tensorflow/issues/28326#issuecomment-633024685
+    os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+
     MODEL_NAME = 'xception_coco_voctrainval'  # @param ['mobilenetv2_coco_voctrainaug', 'mobilenetv2_coco_voctrainval', 'xception_coco_voctrainaug', 'xception_coco_voctrainval']
 
     _DOWNLOAD_URL_PREFIX = 'http://download.tensorflow.org/models/'
