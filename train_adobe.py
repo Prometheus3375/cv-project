@@ -3,8 +3,8 @@ import os
 from timeit import default_timer as get_time
 
 import torch.nn as nn
-import torch.optim as optim
 from tensorboardX import SummaryWriter
+from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader, default_collate
 
 from data_loader import AdobeDataAffineHR
@@ -89,7 +89,7 @@ def main():
     c_loss = compose_loss()
     g_loss = alpha_gradient_loss()
 
-    optimizer = optim.Adam(net.parameters(), lr = 1e-4)
+    optimizer = Adam(net.parameters(), lr = 1e-4)
     # optimizer.load_state_dict(torch.load(model_dir + 'optim_epoch_X')) #uncomment this if you are initializing your model
 
 
