@@ -7,6 +7,7 @@ from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader, default_collate
 
 from data_loader import AdobeDataAffineHR
+from decorators import except_errors
 from functions import *
 from loss_functions import alpha_gradient_loss, alpha_loss, compose_loss
 from networks import ResnetConditionHR, conv_init
@@ -19,6 +20,7 @@ def collate_filter_none(batch):
 
 
 @print_time_elapsed
+@except_errors()
 def main():
     # CUDA
 
@@ -27,18 +29,26 @@ def main():
     print(f'Is CUDA available: {torch.cuda.is_available()}')
 
     """Parses arguments."""
-    parser = argparse.ArgumentParser(description = 'Training Background Matting on Adobe Dataset.')
-    parser.add_argument('-n', '--name', type = str, help = 'Name of tensorboard and model saving folders.')
-    parser.add_argument('-bs', '--batch_size', type = int, help = 'Batch Size.')
-    parser.add_argument('-res', '--reso', type = int, help = 'Input image resolution')
+    parser = argparse.ArgumentParser(description = 'Training Background Matting on Adobe Dataset')
+    parser.add_argument('-n', '--name', type = str,
+                        help = 'Name of tensorboard and model saving folders')
+    parser.add_argument('-bs', '--batch_size', type = int,
+                        help = 'Batch Size')
+    parser.add_argument('-res', '--reso', type = int,
+                        help = 'Input image resolution')
 
-    parser.add_argument('-epoch', '--epoch', type = int, default = 60, help = 'Maximum Epoch')
+    parser.add_argument('-w', '--workers', type = int, default = None,
+                        help = 'Number of worker to load data')
+    parser.add_argument('-epoch', '--epoch', type = int, default = 60,
+                        help = 'Maximum Epoch')
     parser.add_argument('-n_blocks1', '--n_blocks1', type = int, default = 7,
-                        help = 'Number of residual blocks after Context Switching.')
+                        help = 'Number of residual blocks after Context Switching')
     parser.add_argument('-n_blocks2', '--n_blocks2', type = int, default = 3,
-                        help = 'Number of residual blocks for Fg and alpha each.')
+                        help = 'Number of residual blocks for Fg and alpha each')
 
     args = parser.parse_args()
+    if args.workers is None:
+        args.workers = args.batch_size
 
     # Directories
     tb_dir = f'tb_summary/{args.name}'
@@ -71,7 +81,7 @@ def main():
         traindata,
         batch_size = args.batch_size,
         shuffle = True,
-        num_workers = args.batch_size,
+        num_workers = args.workers,
         collate_fn = collate_filter_none
     )
 
@@ -111,101 +121,92 @@ def main():
         testL = 0
         ct_tst = 0
 
-        try:
-            for i, data in enumerate(train_loader):
-                # Initiating
+        for i, data in enumerate(train_loader):
+            # Initiating
 
-                fg = data['fg'].cuda()
-                bg = data['bg'].cuda()
-                alpha = data['alpha'].cuda()
-                image = data['image'].cuda()
-                bg_tr = data['bg_tr'].cuda()
-                seg = data['seg'].cuda()
-                multi_fr = data['multi_fr'].cuda()
+            fg = data['fg'].cuda()
+            bg = data['bg'].cuda()
+            alpha = data['alpha'].cuda()
+            image = data['image'].cuda()
+            bg_tr = data['bg_tr'].cuda()
+            seg = data['seg'].cuda()
+            multi_fr = data['multi_fr'].cuda()
 
-                mask = (alpha > -0.99).type(torch.FloatTensor).cuda()
-                mask0 = torch.ones(alpha.shape).cuda()
+            mask = (alpha > -0.99).type(torch.FloatTensor).cuda()
+            mask0 = torch.ones(alpha.shape).cuda()
 
-                tr0 = get_time()
+            tr0 = get_time()
 
-                alpha_pred, fg_pred = net(image, bg_tr, seg, multi_fr)
+            alpha_pred, fg_pred = net(image, bg_tr, seg, multi_fr)
 
-                ## Put needed loss here
-                al_loss = l1_loss(alpha, alpha_pred, mask0)
-                fg_loss = l1_loss(fg, fg_pred, mask)
+            ## Put needed loss here
+            al_loss = l1_loss(alpha, alpha_pred, mask0)
+            fg_loss = l1_loss(fg, fg_pred, mask)
 
-                al_mask = (alpha_pred > 0.95).type(torch.FloatTensor).cuda()
-                fg_pred_c = image * al_mask + fg_pred * (1 - al_mask)
+            al_mask = (alpha_pred > 0.95).type(torch.FloatTensor).cuda()
+            fg_pred_c = image * al_mask + fg_pred * (1 - al_mask)
 
-                fg_c_loss = c_loss(image, alpha_pred, fg_pred_c, bg, mask0)
+            fg_c_loss = c_loss(image, alpha_pred, fg_pred_c, bg, mask0)
 
-                al_fg_c_loss = g_loss(alpha, alpha_pred, mask0)
+            al_fg_c_loss = g_loss(alpha, alpha_pred, mask0)
 
-                loss = al_loss + 2 * fg_loss + fg_c_loss + al_fg_c_loss
+            loss = al_loss + 2 * fg_loss + fg_c_loss + al_fg_c_loss
 
-                optimizer.zero_grad()
-                loss.backward()
+            optimizer.zero_grad()
+            loss.backward()
 
-                optimizer.step()
+            optimizer.step()
 
-                netL += loss.data
-                alL += al_loss.data
-                fgL += fg_loss.data
-                fg_cL += fg_c_loss.data
-                al_fg_cL += al_fg_c_loss.data
+            netL += loss.data
+            alL += al_loss.data
+            fgL += fg_loss.data
+            fg_cL += fg_c_loss.data
+            al_fg_cL += al_fg_c_loss.data
 
-                log_writer.add_scalar('training_loss', loss.data, epoch * KK + i + 1)
-                log_writer.add_scalar('alpha_loss', al_loss.data, epoch * KK + i + 1)
-                log_writer.add_scalar('fg_loss', fg_loss.data, epoch * KK + i + 1)
-                log_writer.add_scalar('comp_loss', fg_c_loss.data, epoch * KK + i + 1)
-                log_writer.add_scalar('alpha_gradient_loss', al_fg_c_loss.data, epoch * KK + i + 1)
+            log_writer.add_scalar('training_loss', loss.data, epoch * KK + i + 1)
+            log_writer.add_scalar('alpha_loss', al_loss.data, epoch * KK + i + 1)
+            log_writer.add_scalar('fg_loss', fg_loss.data, epoch * KK + i + 1)
+            log_writer.add_scalar('comp_loss', fg_c_loss.data, epoch * KK + i + 1)
+            log_writer.add_scalar('alpha_gradient_loss', al_fg_c_loss.data, epoch * KK + i + 1)
 
-                t1 = get_time()
+            t1 = get_time()
 
-                elapse += t1 - t0
-                elapse_run += t1 - tr0
+            elapse += t1 - t0
+            elapse_run += t1 - tr0
 
-                t0 = t1
+            t0 = t1
 
-                testL += loss.data
-                ct_tst += 1
+            testL += loss.data
+            ct_tst += 1
 
-                if i % step == (step - 1):
-                    print(
-                        f'[{epoch + 1}, {i + 1:5d}] '
-                        f'Total-loss: {netL / step:.4f} '
-                        f'Alpha-loss: {alL / step:.4f} '
-                        f'Fg-loss: {fgL / step:.4f} '
-                        f'Comp-loss: {fg_cL / step:.4f} '
-                        f'Alpha-gradient-loss: {al_fg_cL / step:.4f} '
-                        f'Time-all: {elapse / step:.4f} '
-                        f'Time-fwbw: {elapse_run / step:.4f}'
-                    )
-                    netL, alL, fgL, fg_cL, al_fg_cL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0
+            if i % step == (step - 1):
+                print(
+                    f'[{epoch + 1}, {i + 1:5d}] '
+                    f'Total-loss: {netL / step:.4f} '
+                    f'Alpha-loss: {alL / step:.4f} '
+                    f'Fg-loss: {fgL / step:.4f} '
+                    f'Comp-loss: {fg_cL / step:.4f} '
+                    f'Alpha-gradient-loss: {al_fg_cL / step:.4f} '
+                    f'Time-all: {elapse / step:.4f} '
+                    f'Time-fwbw: {elapse_run / step:.4f}'
+                )
+                netL, alL, fgL, fg_cL, al_fg_cL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0
 
-                    write_tb_log(image, 'image', log_writer, i)
-                    write_tb_log(seg, 'seg', log_writer, i)
-                    write_tb_log(alpha, 'alpha', log_writer, i)
-                    write_tb_log(alpha_pred, 'alpha_pred', log_writer, i)
-                    write_tb_log(fg * mask, 'fg', log_writer, i)
-                    write_tb_log(fg_pred * mask, 'fg_pred', log_writer, i)
-                    write_tb_log(multi_fr[0:4, 0, ...].unsqueeze(1), 'multi_fr', log_writer, i)
+                write_tb_log(image, 'image', log_writer, i)
+                write_tb_log(seg, 'seg', log_writer, i)
+                write_tb_log(alpha, 'alpha', log_writer, i)
+                write_tb_log(alpha_pred, 'alpha_pred', log_writer, i)
+                write_tb_log(fg * mask, 'fg', log_writer, i)
+                write_tb_log(fg_pred * mask, 'fg_pred', log_writer, i)
+                write_tb_log(multi_fr[0:4, 0, ...].unsqueeze(1), 'multi_fr', log_writer, i)
 
-                    # composition
-                    alpha_pred = (alpha_pred + 1) / 2
-                    comp = fg_pred * alpha_pred + (1 - alpha_pred) * bg
-                    write_tb_log(comp, 'composite', log_writer, i)
-                    del comp
+                # composition
+                alpha_pred = (alpha_pred + 1) / 2
+                comp = fg_pred * alpha_pred + (1 - alpha_pred) * bg
+                write_tb_log(comp, 'composite', log_writer, i)
+                del comp
 
-                del fg, bg, alpha, image, alpha_pred, fg_pred, bg_tr, seg, multi_fr
-
-        except Exception as e:
-            from time import sleep
-            import traceback
-            sleep(1)
-            traces = ''.join(traceback.format_tb(e.__traceback__))
-            print(f'Traceback (most recent call last):\n{traces}{e.__class__.__name__}: {e}')
-            return
+            del fg, bg, alpha, image, alpha_pred, fg_pred, bg_tr, seg, multi_fr
 
         # Saving
         torch.save(net.state_dict(), f'{model_dir}/net_epoch_{epoch}_{testL / ct_tst:.4f}.pth')

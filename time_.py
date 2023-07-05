@@ -12,9 +12,12 @@ def seconds2time(seconds: int) -> Tuple[int, int, int]:
 
 def print_time_elapsed(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def temp(*args, **kwargs):
+    def temp(*args, **kwargs) -> Any:
         start = get_time()
-        result = func(*args, **kwargs)
+        try:
+            result = func(*args, **kwargs)
+        except KeyboardInterrupt:
+            result = None
         end = get_time()
         h, m, s = seconds2time(round(end - start))
         print(f'Time elapsed: {h}h {m}m {s}s')

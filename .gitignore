@@ -3,8 +3,8 @@
 Combined_Dataset/
 Data_Adobe/*/
 Data_Adobe/Adobe_train_data.csv
-#Models/
-TB_Summary/
+models/
+tb_summary/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
