@@ -1,7 +1,5 @@
 import argparse
 import os
-from datetime import time
-from timeit import default_timer as get_time
 
 import torch.nn as nn
 from tensorboardX import SummaryWriter
@@ -12,6 +10,7 @@ from data_loader import AdobeDataAffineHR
 from functions import *
 from loss_functions import alpha_gradient_loss, alpha_loss, compose_loss
 from networks import ResnetConditionHR, conv_init
+from time_ import get_time, print_time_elapsed
 
 
 def collate_filter_none(batch):
@@ -19,6 +18,7 @@ def collate_filter_none(batch):
     return default_collate(batch)
 
 
+@print_time_elapsed
 def main():
     # CUDA
 
@@ -213,10 +213,4 @@ def main():
 
 
 if __name__ == '__main__':
-    start = get_time()
     main()
-    end = get_time()
-    seconds = int(start - end)
-
-    t = time(second = seconds)
-    print(f'Time elapsed: {t.hour}h {t.minute}m {t.second}s')
