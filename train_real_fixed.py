@@ -41,7 +41,7 @@ def main():
 
     parser.add_argument('-w', '--workers', type = int, default = None,
                         help = 'Number of worker to load data')
-    parser.add_argument('-epoch', '--epoch', type = int, default = 15,
+    parser.add_argument('-ep', '--epochs', type = int, default = 15,
                         help = 'Maximum Epoch')
     parser.add_argument('-n_blocks1', '--n_blocks1', type = int, default = 7,
                         help = 'Number of residual blocks after Context Switching')
@@ -74,6 +74,7 @@ def main():
         data_config = data_config_train,
         transform = None
     )  # Write a dataloader function that can read the database provided by .csv file
+
     train_loader = DataLoader(
         traindata,
         batch_size = args.batch_size,
@@ -130,7 +131,7 @@ def main():
     KK = len(train_loader)
 
     wt = 1
-    for epoch in range(0, args.epoch):
+    for epoch in range(0, args.epochs):
 
         netG.train()
         netD.train()
@@ -271,10 +272,11 @@ def main():
             del lossG, lossD, loss_ganD_real, loss_ganD_fake, loss_ganG
 
         if epoch % 2 == 0:
-            torch.save(netG.state_dict(), f'{model_dir}/netG_epoch_{epoch}.pth')
-            torch.save(optimizerG.state_dict(), f'{model_dir}/optimG_epoch_{epoch}.pth')
-            torch.save(netD.state_dict(), f'{model_dir}/netD_epoch_{epoch}.pth')
-            torch.save(optimizerD.state_dict(), f'{model_dir}/optimD_epoch_{epoch}.pth')
+            ep = epoch + 1
+            torch.save(netG.state_dict(), f'{model_dir}/netG_epoch_{ep}.pth')
+            torch.save(optimizerG.state_dict(), f'{model_dir}/optimG_epoch_{ep}.pth')
+            torch.save(netD.state_dict(), f'{model_dir}/netD_epoch_{ep}.pth')
+            torch.save(optimizerD.state_dict(), f'{model_dir}/optimD_epoch_{ep}.pth')
 
             # Change weight every 2 epoch to put more stress on discriminator weight and less on pseudo-supervision
             wt = wt / 2

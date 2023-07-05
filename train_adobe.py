@@ -37,9 +37,11 @@ def main():
     parser.add_argument('-res', '--reso', type = int,
                         help = 'Input image resolution')
 
+    parser.add_argument('-cont', '--continue', action = 'store_true',
+                        help = 'Indicates to run the continue training using the latest saved model')
     parser.add_argument('-w', '--workers', type = int, default = None,
                         help = 'Number of worker to load data')
-    parser.add_argument('-epoch', '--epoch', type = int, default = 60,
+    parser.add_argument('-ep', '--epochs', type = int, default = 60,
                         help = 'Maximum Epoch')
     parser.add_argument('-n_blocks1', '--n_blocks1', type = int, default = 7,
                         help = 'Number of residual blocks after Context Switching')
@@ -49,6 +51,8 @@ def main():
     args = parser.parse_args()
     if args.workers is None:
         args.workers = args.batch_size
+
+    continue_training = getattr(args, 'continue')
 
     # Directories
     tb_dir = f'tb_summary/{args.name}'
@@ -60,7 +64,7 @@ def main():
     if not os.path.exists(tb_dir):
         os.makedirs(tb_dir)
 
-    ## Input list
+    # Input list
     data_config_train = {
         'reso'   : [args.reso, args.reso],
         'trimapK': [5, 5],
@@ -87,11 +91,28 @@ def main():
 
     print('\n[Phase 2] : Initialization')
 
+    # Find latest saved model
+    model, optim = '', ''
+    start_epoch = 0
+    if continue_training:
+        for name in os.listdir(model_dir):
+            if name.endswith('.pth') and name.startswith('net_epoch_'):
+                ep = int(name[len('net_epoch_'):-4])
+                if ep > start_epoch:
+                    start_epoch = ep
+                    model = name
+        if model:
+            model = f'{model_dir}/{model}'
+            optim = f'{model_dir}/optim_epoch_{start_epoch}.pth'
+        else:
+            continue_training = False
+
     net = ResnetConditionHR(input_nc = (3, 3, 1, 4), output_nc = 4, n_blocks1 = 7, n_blocks2 = 3,
                             norm_layer = nn.BatchNorm2d)
     net.apply(conv_init)
     net = nn.DataParallel(net)
-    # net.load_state_dict(torch.load(model_dir + 'net_epoch_X')) #uncomment this if you are initializing your model
+    if continue_training:
+        net.load_state_dict(torch.load(model))
     net.cuda()
     torch.backends.cudnn.benchmark = True
 
@@ -101,8 +122,8 @@ def main():
     g_loss = alpha_gradient_loss()
 
     optimizer = Adam(net.parameters(), lr = 1e-4)
-    # optimizer.load_state_dict(torch.load(model_dir + 'optim_epoch_X')) #uncomment this if you are initializing your model
-
+    if continue_training:
+        optimizer.load_state_dict(torch.load(optim))
 
     log_writer = SummaryWriter(tb_dir)
 
@@ -111,7 +132,7 @@ def main():
 
     KK = len(train_loader)
 
-    for epoch in range(0, args.epoch):
+    for epoch in range(start_epoch, args.epochs):
 
         net.train()
 
@@ -209,8 +230,8 @@ def main():
             del fg, bg, alpha, image, alpha_pred, fg_pred, bg_tr, seg, multi_fr
 
         # Saving
-        torch.save(net.state_dict(), f'{model_dir}/net_epoch_{epoch}_{testL / ct_tst:.4f}.pth')
-        torch.save(optimizer.state_dict(), f'{model_dir}/optim_epoch_{epoch}_{testL / ct_tst:.4f}.pth')
+        torch.save(net.state_dict(), f'{model_dir}/net_epoch_{epoch + 1}.pth')
+        torch.save(optimizer.state_dict(), f'{model_dir}/optim_epoch_{epoch + 1}.pth')
 
 
 if __name__ == '__main__':
