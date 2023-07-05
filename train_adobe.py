@@ -41,8 +41,8 @@ def main():
     args = parser.parse_args()
 
     # Directories
-    tb_dir = 'TB_Summary/' + args.name
-    model_dir = 'Models/' + args.name
+    tb_dir = f'tb_summary/{args.name}'
+    model_dir = f'models/{args.name}'
 
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
@@ -208,8 +208,8 @@ def main():
             return
 
         # Saving
-        torch.save(net.state_dict(), model_dir + 'net_epoch_%d_%.4f.pth' % (epoch, testL / ct_tst))
-        torch.save(optimizer.state_dict(), model_dir + 'optim_epoch_%d_%.4f.pth' % (epoch, testL / ct_tst))
+        torch.save(net.state_dict(), f'{model_dir}/net_epoch_{epoch}_{testL / ct_tst:.4f}.pth')
+        torch.save(optimizer.state_dict(), f'{model_dir}/optim_epoch_{epoch}_{testL / ct_tst:.4f}.pth')
 
 
 if __name__ == '__main__':

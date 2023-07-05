@@ -42,8 +42,8 @@ def main():
     args = parser.parse_args()
 
     ##Directories
-    tb_dir = 'TB_Summary/' + args.name
-    model_dir = 'Models/' + args.name
+    tb_dir = f'tb_summary/{args.name}'
+    model_dir = f'models/{args.name}'
 
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
@@ -260,10 +260,10 @@ def main():
             del lossG, lossD, loss_ganD_real, loss_ganD_fake, loss_ganG
 
         if epoch % 2 == 0:
-            torch.save(netG.state_dict(), f'{model_dir}netG_epoch_{epoch}.pth')
-            torch.save(optimizerG.state_dict(), f'{model_dir}optimG_epoch_{epoch}.pth')
-            torch.save(netD.state_dict(), f'{model_dir}netD_epoch_{epoch}.pth')
-            torch.save(optimizerD.state_dict(), f'{model_dir}optimD_epoch_{epoch}.pth')
+            torch.save(netG.state_dict(), f'{model_dir}/netG_epoch_{epoch}.pth')
+            torch.save(optimizerG.state_dict(), f'{model_dir}/optimG_epoch_{epoch}.pth')
+            torch.save(netD.state_dict(), f'{model_dir}/netD_epoch_{epoch}.pth')
+            torch.save(optimizerD.state_dict(), f'{model_dir}/optimD_epoch_{epoch}.pth')
 
             # Change weight every 2 epoch to put more stress on discriminator weight and less on pseudo-supervision
             wt = wt / 2
