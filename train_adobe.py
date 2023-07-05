@@ -1,5 +1,6 @@
 import argparse
 import os
+from datetime import time
 from timeit import default_timer as get_time
 
 import torch.nn as nn
@@ -113,7 +114,6 @@ def main():
         try:
             for i, data in enumerate(train_loader):
                 # Initiating
-                torch.cuda.empty_cache()
 
                 fg = data['fg'].cuda()
                 bg = data['bg'].cuda()
@@ -213,4 +213,10 @@ def main():
 
 
 if __name__ == '__main__':
+    start = get_time()
     main()
+    end = get_time()
+    seconds = int(start - end)
+
+    t = time(second = seconds)
+    print(f'Time elapsed: {t.hour}h {t.minute}m {t.second}s')

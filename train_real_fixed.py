@@ -1,11 +1,12 @@
 import argparse
 import os
-import time
+from datetime import time
+from timeit import default_timer as get_time
 
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from torch.optim import Adam
-from torch.utils.data import DataLoader, dataloader
+from torch.utils.data.dataloader import DataLoader, default_collate
 
 from data_loader import VideoData
 from functions import *
@@ -15,7 +16,7 @@ from networks import MultiscaleDiscriminator, ResnetConditionHR, conv_init
 
 def collate_filter_none(batch):
     batch = list(filter(lambda x: x is not None, batch))
-    return dataloader.default_collate(batch)
+    return default_collate(batch)
 
 
 def main():
@@ -125,7 +126,7 @@ def main():
 
         lG, lD, GenL, DisL_r, DisL_f, alL, fgL, compL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-        t0 = time.time()
+        t0 = get_time()
 
         for i, data in enumerate(train_loader):
             # Initiating
@@ -138,7 +139,7 @@ def main():
 
             mask0 = torch.ones(seg.shape).cuda()
 
-            tr0 = time.time()
+            tr0 = get_time()
 
             # pseudo-supervision
             alpha_pred_sup, fg_pred_sup = netB(image, bg, seg, multi_fr)
@@ -218,7 +219,7 @@ def main():
             log_writer.add_scalar('Generator Loss: Fg', fg_loss.data, epoch * KK + i + 1)
             log_writer.add_scalar('Generator Loss: Comp', comp_loss.data, epoch * KK + i + 1)
 
-            t1 = time.time()
+            t1 = get_time()
 
             elapse += t1 - t0
             elapse_run += t1 - tr0
@@ -269,4 +270,10 @@ def main():
 
 
 if __name__ == '__main__':
+    start = get_time()
     main()
+    end = get_time()
+    seconds = int(start - end)
+
+    t = time(second = seconds)
+    print(f'Time elapsed: {t.hour}h {t.minute}m {t.second}s')
