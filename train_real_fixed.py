@@ -94,7 +94,7 @@ def main():
     netB.load_state_dict(torch.load(args.init_model))
     netB.cuda()
     netB.eval()
-    for param in netB.parameters():  # freeze netD
+    for param in netB.parameters():  # freeze netB
         param.requires_grad = False
 
     netG = ResnetConditionHR(

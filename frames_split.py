@@ -1,8 +1,9 @@
-import cv2
-import os
 import argparse
 import glob
+import os
 from pathlib import Path
+
+import cv2
 
 
 def frames_from_video(video_path):
@@ -15,7 +16,7 @@ def frames_from_video(video_path):
 
     output = video_path.parent / os.path.basename(video_path).split(".")[0]
 
-    output.mkdir(exist_ok=True)
+    output.mkdir(exist_ok = True)
 
     while success:
         success, image = video.read()
@@ -27,9 +28,9 @@ def frames_from_video(video_path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Split a video on frames")
-    parser.add_argument("-f", "--folders", nargs="+", help="List of folders with videos")
-    parser.add_argument("-e", "--extensions", nargs="+", help="List of video extensions")
+    parser = argparse.ArgumentParser(description = "Split a video on frames")
+    parser.add_argument("-f", "--folders", nargs = "+", help = "List of folders with videos")
+    parser.add_argument("-e", "--extensions", nargs = "+", help = "List of video extensions")
     args = parser.parse_args()
 
     folders = [Path(p).resolve() for p in args.folders]
@@ -38,6 +39,5 @@ if __name__ == "__main__":
     for folder in folders:
         os.chdir(folder)
         for ext in extensions:
-           for file in glob.glob(f"*.{ext}"):
-               frames_from_video(folder / file)
-
+            for file in glob.glob(f"*.{ext}"):
+                frames_from_video(folder / file)
